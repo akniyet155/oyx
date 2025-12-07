@@ -162,21 +162,6 @@
     .blocked-title { font-size: 20px; font-weight: 700; margin-bottom: 10px; }
     .blocked-text { font-size: 14px; color: var(--muted); line-height: 1.6; }
 
-    .blocked-btn {
-      margin-top: 16px;
-      padding: 12px 16px;
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      background: linear-gradient(135deg, #7af0f5, #7c6cff);
-      color: #0c1020;
-      font-weight: 700;
-      cursor: pointer;
-      font-size: 14px;
-      transition: transform 0.15s ease, box-shadow 0.2s ease;
-      width: 100%;
-    }
-
-    .blocked-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(124,108,255,0.25); }
 
     .hidden { display: none; }
 
@@ -301,7 +286,6 @@
     <div class="blocked-card">
       <div class="blocked-title">Доступно только в мини-приложении Telegram</div>
       <div class="blocked-text">Откройте OYX TV через Telegram, чтобы продолжить.</div>
-      <button id="overrideBtn" class="blocked-btn">Я в Telegram — продолжить</button>
     </div>
   </div>
   <div class="player-shell">
@@ -341,7 +325,6 @@
     const blocker = document.getElementById('blocker');
     const playerShell = document.querySelector('.player-shell');
     const titleEl = document.querySelector('.title');
-    const overrideBtn = document.getElementById('overrideBtn');
 
     let channels = [];
     let currentChannel = null;
@@ -577,16 +560,6 @@
 
       setChannel(channels[0]);
     }
-
-    overrideBtn?.addEventListener('click', ()=>{
-      if (!isTelegramWebApp()) {
-        window.location.href = telegramDeepLink;
-        return;
-      }
-      blocker.classList.add('hidden');
-      playerShell.classList.remove('hidden');
-      initApp();
-    });
 
     initApp();
   </script>
