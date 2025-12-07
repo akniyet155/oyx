@@ -133,6 +133,37 @@
       100% { transform: scaleX(0); }
     }
 
+    .blocked-overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 30% 30%, rgba(124, 108, 255, 0.2), transparent 40%),
+                  radial-gradient(circle at 70% 70%, rgba(122, 240, 245, 0.18), transparent 45%),
+                  linear-gradient(135deg, #0f1629, #1b2438);
+      z-index: 50;
+      color: var(--text);
+      text-align: center;
+      padding: 24px;
+    }
+
+    .blocked-card {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 24px 28px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 30px 90px rgba(5, 10, 30, 0.5), inset 0 1px 0 rgba(255,255,255,0.08);
+      backdrop-filter: blur(12px);
+    }
+
+    .blocked-title { font-size: 20px; font-weight: 700; margin-bottom: 10px; }
+    .blocked-text { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+    .hidden { display: none; }
+
     .menu-tab {
       position: fixed;
       right: 36px;
@@ -226,6 +257,12 @@
   </style>
 </head>
 <body>
+  <div id="blocker" class="blocked-overlay hidden">
+    <div class="blocked-card">
+      <div class="blocked-title">Доступно только в мини-приложении Telegram</div>
+      <div class="blocked-text">Откройте OYX TV через Telegram, чтобы продолжить.</div>
+    </div>
+  </div>
   <div class="player-shell">
     <div class="header">
       <div class="title"></div>
@@ -261,6 +298,8 @@
     const videoWrap = document.getElementById('videoWrap');
     const menuTab = document.getElementById('menuTab');
     const menuPanel = document.getElementById('menuPanel');
+    const blocker = document.getElementById('blocker');
+    const playerShell = document.querySelector('.player-shell');
 
     video.addEventListener('waiting', () => {
       loader.classList.add('active');
@@ -358,7 +397,25 @@
       if(e.code === 'KeyM') video.muted = !video.muted;
     });
 
-    attachStream();
+    function isTelegramWebApp(){
+      const ua = navigator.userAgent || '';
+      return !!(window.Telegram && window.Telegram.WebApp) || /Telegram/i.test(ua);
+    }
+
+    function initApp(){
+      if (!isTelegramWebApp()) {
+        blocker.classList.remove('hidden');
+        playerShell.classList.add('hidden');
+        return;
+      }
+
+      blocker.classList.add('hidden');
+      playerShell.classList.remove('hidden');
+      try { window.Telegram?.WebApp?.ready(); } catch (err) { /* ignore init issues */ }
+      attachStream();
+    }
+
+    initApp();
   </script>
 </body>
 </html>
