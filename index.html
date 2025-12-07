@@ -330,6 +330,7 @@
 
   <script>
     const streamUrl = "https://live-uvelirochka.cdnvideo.ru/uvelirochka/uvelirochka_720p3/playlist.m3u8";
+    const telegramDeepLink = "https://t.me/"; // Замените на ссылку мини-приложения
     const video = document.getElementById('video');
     const muteBtn = document.getElementById('muteBtn');
     const loader = document.getElementById('loader');
@@ -467,9 +468,8 @@
       const uaTelegram = /Telegram/i.test(navigator.userAgent || '');
       const urlFlag = /tgWebApp/i.test(window.location.search || window.location.hash || '');
       const refTme = /t\.me|telegram\.org/i.test(document.referrer || '');
-      const override = sessionStorage.getItem('allowOverride') === '1' || /force=1/i.test(window.location.search || '');
-      // Пускаем, если есть WebApp API, Telegram UA, t.me реферер с tgWebApp флагом, либо явный оверрайд
-      return hasApi || uaTelegram || (urlFlag && refTme) || override;
+      // Пускаем только при признаках Telegram WebApp/UA
+      return hasApi || uaTelegram || (urlFlag && refTme);
     }
 
     function parseM3U(text){
@@ -579,7 +579,10 @@
     }
 
     overrideBtn?.addEventListener('click', ()=>{
-      sessionStorage.setItem('allowOverride', '1');
+      if (!isTelegramWebApp()) {
+        window.location.href = telegramDeepLink;
+        return;
+      }
       blocker.classList.add('hidden');
       playerShell.classList.remove('hidden');
       initApp();
