@@ -196,7 +196,7 @@
       background: rgba(20, 30, 60, 0.9);
       backdrop-filter: blur(12px);
       z-index: 24;
-      padding: 20px 0;
+      padding: 20px 0 90px;
       overflow-y: auto;
       transform: translateY(-100%);
       transition: transform 0.3s ease;
@@ -204,16 +204,40 @@
 
     .menu-panel.open { transform: translateY(0); }
 
-    .menu-item {
-      padding: 16px 20px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      cursor: pointer;
-      transition: all 0.2s ease;
-      color: var(--text);
-      font-size: 14px;
+    .menu-group {
+      padding: 10px 18px 6px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      opacity: 0.8;
     }
 
-    .menu-item:hover { background: rgba(255, 255, 255, 0.1); padding-left: 24px; }
+    .menu-item {
+      padding: 14px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      color: var(--text);
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .menu-item:hover { background: rgba(255, 255, 255, 0.08); padding-left: 24px; }
+
+    .menu-item.active { background: rgba(124, 108, 255, 0.12); border-left: 3px solid #7af0f5; padding-left: 24px; }
+
+    .menu-logo {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.08);
+      flex-shrink: 0;
+      object-fit: contain;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
 
     .loading-text {
       position: absolute;
@@ -274,9 +298,7 @@
       <button class="mute-btn" id="muteBtn">🔊 Включить звук</button>
       
       <div class="menu-panel" id="menuPanel">
-        <div class="menu-item">Кнопка 1</div>
-        <div class="menu-item">Кнопка 2</div>
-        <div class="menu-item">Кнопка 3</div>
+        <div class="menu-item">Загрузка списка...</div>
       </div>
       
       <video id="video" preload="metadata" autoplay muted>
@@ -300,6 +322,10 @@
     const menuPanel = document.getElementById('menuPanel');
     const blocker = document.getElementById('blocker');
     const playerShell = document.querySelector('.player-shell');
+    const titleEl = document.querySelector('.title');
+
+    let channels = [];
+    let currentChannel = null;
 
     video.addEventListener('waiting', () => {
       loader.classList.add('active');
@@ -368,13 +394,33 @@
       showMuteButton();
     });
 
-    function attachStream(){
+    function attachStream(url){
+      // Очистим предыдущее состояние
+      video.pause();
+      video.removeAttribute('src');
+      if (window.currentHls) {
+        try { window.currentHls.destroy(); } catch (_) { /* ignore */ }
+        window.currentHls = null;
+      }
+
+      if (!url) return;
+
+      const lower = url.toLowerCase();
+      const isHls = lower.includes('.m3u8');
+
+      if (!isHls) {
+        video.src = url;
+        video.play().catch(()=>{});
+        return;
+      }
+
       if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = streamUrl;
+        video.src = url;
+        video.play().catch(()=>{});
       } else if (window.Hls && window.Hls.isSupported()) {
         const hls = new Hls({maxBufferLength: 10, maxMaxBufferLength: 30});
         window.currentHls = hls;
-        hls.loadSource(streamUrl);
+        hls.loadSource(url);
         hls.attachMedia(video);
         hls.on(Hls.Events.ERROR, (ev, data)=>{
           if (data.fatal) {
@@ -406,7 +452,79 @@
       return !!(Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.platform);
     }
 
-    function initApp(){
+    function parseM3U(text){
+      const lines = text.split(/\r?\n/);
+      const result = [];
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line.startsWith('#EXTINF')) continue;
+        const url = (lines[i + 1] || '').trim();
+        if (!url || url.startsWith('#') || !/^https?:/i.test(url)) continue;
+
+        const name = line.split(',').pop().trim();
+        const logoMatch = line.match(/tvg-logo="([^"]+)"/);
+        const groupMatch = line.match(/group-title="([^"]*)"/);
+
+        result.push({
+          name: name || 'Канал',
+          url,
+          logo: logoMatch ? logoMatch[1] : null,
+          group: groupMatch ? groupMatch[1] : 'Прочее',
+        });
+      }
+      return result;
+    }
+
+    function renderMenu(){
+      menuPanel.innerHTML = '';
+      const byGroup = channels.reduce((acc, ch) => {
+        const g = ch.group || 'Прочее';
+        if (!acc[g]) acc[g] = [];
+        acc[g].push(ch);
+        return acc;
+      }, {});
+
+      Object.entries(byGroup).forEach(([group, items]) => {
+        const groupEl = document.createElement('div');
+        groupEl.className = 'menu-group';
+        groupEl.textContent = group;
+        menuPanel.appendChild(groupEl);
+
+        items.forEach((ch) => {
+          const item = document.createElement('div');
+          item.className = 'menu-item';
+          if (currentChannel && currentChannel.url === ch.url) item.classList.add('active');
+
+          const logo = document.createElement('img');
+          logo.className = 'menu-logo';
+          if (ch.logo) { logo.src = ch.logo; logo.loading = 'lazy'; }
+          else { logo.style.visibility = 'hidden'; }
+
+          const text = document.createElement('div');
+          text.textContent = ch.name;
+
+          item.appendChild(logo);
+          item.appendChild(text);
+
+          item.addEventListener('click', () => {
+            setChannel(ch);
+            menuPanel.classList.remove('open');
+            menuTab.classList.remove('open');
+          });
+
+          menuPanel.appendChild(item);
+        });
+      });
+    }
+
+    function setChannel(ch){
+      currentChannel = ch;
+      titleEl.textContent = ch ? ch.name : '';
+      renderMenu();
+      attachStream(ch?.url);
+    }
+
+    async function initApp(){
       if (!isTelegramWebApp()) {
         blocker.classList.remove('hidden');
         playerShell.classList.add('hidden');
@@ -421,7 +539,23 @@
       blocker.classList.add('hidden');
       playerShell.classList.remove('hidden');
       try { window.Telegram?.WebApp?.ready(); } catch (err) { /* ignore init issues */ }
-      attachStream();
+
+      try {
+        const res = await fetch('playlist.m3u');
+        const text = await res.text();
+        channels = parseM3U(text);
+      } catch (err) {
+        console.warn('Не удалось загрузить плейлист', err);
+        channels = [];
+      }
+
+      if (!channels.length) {
+        titleEl.textContent = 'Плейлист пуст';
+        menuPanel.innerHTML = '<div class="menu-item">Нет каналов</div>';
+        return;
+      }
+
+      setChannel(channels[0]);
     }
 
     initApp();
