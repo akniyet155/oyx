@@ -399,13 +399,21 @@
 
     function isTelegramWebApp(){
       const ua = navigator.userAgent || '';
-      return !!(window.Telegram && window.Telegram.WebApp) || /Telegram/i.test(ua);
+      const Telegram = window.Telegram;
+      const hasWebApp = !!(Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.platform);
+      const uaTelegram = /Telegram/i.test(ua);
+      const urlFlag = /tgWebApp=1|tgWebAppPlatform/i.test(window.location.search || '');
+      return hasWebApp || (uaTelegram && urlFlag);
     }
 
     function initApp(){
       if (!isTelegramWebApp()) {
         blocker.classList.remove('hidden');
         playerShell.classList.add('hidden');
+        video.removeAttribute('src');
+        if (window.currentHls) {
+          try { window.currentHls.destroy(); } catch (_) { /* ignore */ }
+        }
         return;
       }
 
