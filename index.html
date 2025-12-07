@@ -444,12 +444,9 @@
     });
 
     function isTelegramWebApp(){
-      const ua = navigator.userAgent || '';
       const Telegram = window.Telegram;
-      const hasWebApp = !!(Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.platform);
-      const uaTelegram = /Telegram/i.test(ua);
-      const urlFlag = /tgWebApp=1|tgWebAppPlatform/i.test(window.location.search || '');
-      return !!(Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.platform);
+      // Требуем присутствие Telegram WebApp API (platform), но не жестко initDataUnsafe — чтобы не блокировать рабочие WebView
+      return !!(Telegram && Telegram.WebApp && Telegram.WebApp.platform);
     }
 
     function parseM3U(text){
