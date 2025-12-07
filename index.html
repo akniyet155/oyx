@@ -445,8 +445,11 @@
 
     function isTelegramWebApp(){
       const Telegram = window.Telegram;
-      // Требуем присутствие Telegram WebApp API (platform), но не жестко initDataUnsafe — чтобы не блокировать рабочие WebView
-      return !!(Telegram && Telegram.WebApp && Telegram.WebApp.platform);
+      const hasApi = !!(Telegram && Telegram.WebApp);
+      const uaTelegram = /Telegram/i.test(navigator.userAgent || '');
+      const urlFlag = /tgWebApp/i.test(window.location.search || '');
+      // Пускаем, если есть WebApp API, либо Telegram UA + флаг tgWebApp (как в мини-апе)
+      return hasApi || (uaTelegram && urlFlag);
     }
 
     function parseM3U(text){
