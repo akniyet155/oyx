@@ -403,7 +403,7 @@
       const hasWebApp = !!(Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.platform);
       const uaTelegram = /Telegram/i.test(ua);
       const urlFlag = /tgWebApp=1|tgWebAppPlatform/i.test(window.location.search || '');
-      return hasWebApp || (uaTelegram && urlFlag);
+      return !!(Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.platform);
     }
 
     function initApp(){
@@ -411,10 +411,11 @@
         blocker.classList.remove('hidden');
         playerShell.classList.add('hidden');
         video.removeAttribute('src');
+        try { video.pause(); } catch (_) { /* ignore */ }
         if (window.currentHls) {
           try { window.currentHls.destroy(); } catch (_) { /* ignore */ }
         }
-        return;
+        return; // Строго выходим, чтобы в браузере ничего не запускалось
       }
 
       blocker.classList.add('hidden');
