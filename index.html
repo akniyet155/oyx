@@ -447,9 +447,10 @@
       const Telegram = window.Telegram;
       const hasApi = !!(Telegram && Telegram.WebApp);
       const uaTelegram = /Telegram/i.test(navigator.userAgent || '');
-      const urlFlag = /tgWebApp/i.test(window.location.search || '');
-      // Пускаем, если есть WebApp API, либо Telegram UA + флаг tgWebApp (как в мини-апе)
-      return hasApi || (uaTelegram && urlFlag);
+      const urlFlag = /tgWebApp/i.test(window.location.search || window.location.hash || '');
+      const refTme = /t\.me|telegram\.org/i.test(document.referrer || '');
+      // Пускаем, если есть WebApp API, или Telegram UA, или t.me реферер с tgWebApp флагом
+      return hasApi || uaTelegram || (urlFlag && refTme);
     }
 
     function parseM3U(text){
